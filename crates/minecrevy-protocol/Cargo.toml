@@ -1,0 +1,14 @@
+[package]
+name = "minecrevy-protocol"
+version = "0.1.0"
+edition = "2024"
+
+[dependencies]
+# workspace
+embedded-byteorder = { workspace = true }
+minecrevy-bytes = { workspace = true }
+minecrevy-encdec = { workspace = true }
+# external
+embedded-io-async = { workspace = true }
+heapless = { workspace = true }
+thiserror = { workspace = true }

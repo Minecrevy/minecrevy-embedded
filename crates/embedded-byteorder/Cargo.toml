@@ -1,0 +1,10 @@
+[package]
+name = "embedded-byteorder"
+version = "0.1.0"
+edition = "2024"
+
+[dependencies]
+# external
+byteorder = { workspace = true }
+embedded-io = { workspace = true }
+embedded-io-async = { workspace = true }

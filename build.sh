@@ -1,0 +1,1 @@
+cargo build --target=thumbv8m.main-none-eabihf

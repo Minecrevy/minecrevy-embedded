@@ -1,0 +1,1 @@
+cargo run --release --target=thumbv8m.main-none-eabihf
