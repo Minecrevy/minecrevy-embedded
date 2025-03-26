@@ -52,6 +52,14 @@ impl<E> From<ReadExactError<E>> for ReadMinecraftError<E> {
     }
 }
 
+#[derive(Error, Clone, PartialEq, Eq, Debug)]
+pub enum WriteMinecraftError<E> {
+    #[error("out of memory")]
+    OutOfMemory,
+    #[error("other error: {0}")]
+    Other(#[from] E),
+}
+
 #[derive(Clone, PartialEq, Eq, Debug)]
 pub struct RawPacket<const N: usize> {
     pub id: i32,

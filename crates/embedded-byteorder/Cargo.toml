@@ -8,3 +8,4 @@ edition = "2024"
 byteorder = { workspace = true }
 embedded-io = { workspace = true }
 embedded-io-async = { workspace = true }
+heapless = { workspace = true }
