@@ -9,6 +9,7 @@ embedded-byteorder = { workspace = true }
 minecrevy-bytes = { workspace = true }
 minecrevy-encdec = { workspace = true }
 # external
-embedded-io-async = { workspace = true }
 heapless = { workspace = true }
+serde = { workspace = true, features = ["derive"] }
+serde-json-core = { workspace = true }
 thiserror = { workspace = true }

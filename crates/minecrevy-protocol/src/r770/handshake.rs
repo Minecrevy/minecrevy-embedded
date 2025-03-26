@@ -1,4 +1,4 @@
-use embedded_io_async::{Read, ReadExactError};
+use embedded_byteorder::{AsyncRead, ReadExactError};
 use heapless::String;
 use minecrevy_bytes::ReadMinecraftError;
 use minecrevy_encdec::{AsyncDecode, options::IntOptions};
@@ -26,10 +26,13 @@ impl<E> From<ReadExactError<E>> for DecodeHandshakeError<E> {
 }
 
 impl AsyncDecode for Handshake {
-    type Options = ();
+    type Options<'a> = ();
     type Error<E> = DecodeHandshakeError<E>;
 
-    async fn decode<R: Read>(reader: &mut R, (): ()) -> Result<Self, Self::Error<R::Error>> {
+    async fn decode<R: AsyncRead>(
+        reader: &mut R,
+        (): Self::Options<'_>,
+    ) -> Result<Self, Self::Error<R::Error>> {
         Ok(Self {
             protocol_version: i32::decode(reader, IntOptions { varint: true }).await?,
             server_address: String::decode(reader, ()).await?,
