@@ -6,6 +6,8 @@ edition = "2024"
 [dependencies]
 # workspace
 embedded-byteorder = { workspace = true }
-minecrevy-bytes = { workspace = true }
+minecrevy-encdec-macros = { workspace = true }
 # external
 heapless = { workspace = true }
+thiserror = { workspace = true }
+uuid = { workspace = true }

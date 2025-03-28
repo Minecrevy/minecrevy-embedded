@@ -3,33 +3,34 @@ use core::convert::Infallible;
 use embedded_byteorder::{
     AsyncRead, AsyncReadBytesExt, AsyncWrite, AsyncWriteBytesExt, BigEndian, ReadExactError,
 };
-use minecrevy_encdec::{AsyncDecode, AsyncEncode};
+use minecrevy_encdec::{AsyncDecode, AsyncEncode, WireSize};
 use serde::{Serialize, ser::SerializeMap};
 
 pub struct StatusRequest;
 
 impl AsyncDecode for StatusRequest {
-    type Options<'a> = ();
+    type Options = ();
     type Error<E> = Infallible;
 
     async fn decode<R: AsyncRead>(
         _reader: &mut R,
-        (): Self::Options<'_>,
+        (): Self::Options,
     ) -> Result<Self, Self::Error<R::Error>> {
         Ok(Self)
     }
 }
 
+#[derive(WireSize, Clone, Copy, PartialEq, Eq, Debug)]
 pub struct StatusPing(pub i64);
 
 impl AsyncEncode for StatusPing {
-    type Options<'a> = ();
+    type Options = ();
     type Error<E> = E;
 
     async fn encode<W: AsyncWrite>(
         &self,
         writer: &mut W,
-        (): Self::Options<'_>,
+        (): Self::Options,
     ) -> Result<(), Self::Error<W::Error>> {
         writer.write_i64::<BigEndian>(self.0).await?;
         Ok(())
@@ -37,12 +38,12 @@ impl AsyncEncode for StatusPing {
 }
 
 impl AsyncDecode for StatusPing {
-    type Options<'a> = ();
+    type Options = ();
     type Error<E> = ReadExactError<E>;
 
     async fn decode<R: AsyncRead>(
         reader: &mut R,
-        (): Self::Options<'_>,
+        (): Self::Options,
     ) -> Result<Self, Self::Error<R::Error>> {
         Ok(Self(reader.read_i64::<BigEndian>().await?))
     }
@@ -56,20 +57,21 @@ pub struct StatusResponse<'a> {
     pub enforces_secure_chat: bool,
 }
 
-impl AsyncEncode for StatusResponse<'_> {
-    type Options<'a> = &'a mut [u8];
-    type Error<E> = E;
+// TODO: write a serde_json_core::to_writer instead
+// impl AsyncEncode for StatusResponse<'_> {
+//     type Options<'a> = &'a mut [u8];
+//     type Error<E> = E;
 
-    async fn encode<W: AsyncWrite>(
-        &self,
-        writer: &mut W,
-        buf: Self::Options<'_>,
-    ) -> Result<(), Self::Error<W::Error>> {
-        let written = serde_json_core::to_slice(self, buf).unwrap();
-        writer.write_all(&buf[..written]).await?;
-        Ok(())
-    }
-}
+//     async fn encode<W: AsyncWrite>(
+//         &self,
+//         writer: &mut W,
+//         buf: Self::Options<'_>,
+//     ) -> Result<(), Self::Error<W::Error>> {
+//         let written = serde_json_core::to_slice(self, buf).unwrap();
+//         writer.write_all(&buf[..written]).await?;
+//         Ok(())
+//     }
+// }
 
 #[derive(Clone, PartialEq, Debug)]
 pub enum Version {

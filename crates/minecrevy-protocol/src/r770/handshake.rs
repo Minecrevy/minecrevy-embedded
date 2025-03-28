@@ -1,11 +1,13 @@
 use embedded_byteorder::{AsyncRead, ReadExactError};
 use heapless::String;
-use minecrevy_bytes::ReadMinecraftError;
-use minecrevy_encdec::{AsyncDecode, options::IntOptions};
+use minecrevy_encdec::{
+    AsyncDecode, ReadMinecraftError, WireSize, options::IntOptions, var_i32_size,
+};
 use thiserror::Error;
 
-#[derive(Clone, PartialEq, Debug)]
+#[derive(WireSize, Clone, PartialEq, Debug)]
 pub struct Handshake {
+    #[options(.varint = true)]
     pub protocol_version: i32,
     pub server_address: String<255>,
     pub server_port: u16,
@@ -26,12 +28,12 @@ impl<E> From<ReadExactError<E>> for DecodeHandshakeError<E> {
 }
 
 impl AsyncDecode for Handshake {
-    type Options<'a> = ();
+    type Options = ();
     type Error<E> = DecodeHandshakeError<E>;
 
     async fn decode<R: AsyncRead>(
         reader: &mut R,
-        (): Self::Options<'_>,
+        (): Self::Options,
     ) -> Result<Self, Self::Error<R::Error>> {
         Ok(Self {
             protocol_version: i32::decode(reader, IntOptions { varint: true }).await?,
@@ -49,6 +51,19 @@ pub enum NextState {
     Status,
     Login,
     Transfer,
+}
+
+impl WireSize for NextState {
+    type Options = ();
+
+    fn wire_size(&self, _: Self::Options) -> usize {
+        let value = match self {
+            NextState::Status => 1,
+            NextState::Login => 2,
+            NextState::Transfer => 3,
+        };
+        var_i32_size(value)
+    }
 }
 
 #[derive(Error, Debug)]

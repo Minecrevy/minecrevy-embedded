@@ -1,0 +1,10 @@
+[package]
+name = "embassy-time-std"
+version = "0.1.0"
+edition = "2024"
+
+[dependencies]
+crossbeam-channel = { workspace = true, features = ["std"]}
+embassy-time = { workspace = true }
+embassy-time-driver = { workspace = true }
+spin_sleep = { workspace = true }

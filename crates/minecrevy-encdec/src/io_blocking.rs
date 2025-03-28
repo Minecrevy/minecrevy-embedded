@@ -1,7 +1,7 @@
 use embedded_byteorder::{Read, Write};
 
 pub trait Decode: Sized {
-    type Options: Default;
+    type Options: Clone + Default;
     type Error<E>;
 
     fn decode<R: Read>(
@@ -11,7 +11,7 @@ pub trait Decode: Sized {
 }
 
 pub trait Encode {
-    type Options: Default;
+    type Options: Clone + Default;
     type Error<E>;
 
     fn encode<W: Write>(

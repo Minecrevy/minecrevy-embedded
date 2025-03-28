@@ -3,7 +3,7 @@
 use byteorder::ByteOrder;
 use embedded_io_async::{Read, ReadExactError, Write};
 
-use crate::Take;
+use crate::Limit;
 
 /// Extends [`Read`] with methods for reading numbers.
 ///
@@ -11,13 +11,13 @@ use crate::Take;
 /// must be explicitly instantiated. Typically, it is instantiated with either
 /// the [`BigEndian`] or [`LittleEndian`] types defined in this crate.
 pub trait AsyncReadBytesExt: Read {
-    /// Creates a new [`Take`] instance that reads at most `limit` bytes from the
+    /// Creates a new [`Limit`] instance that reads at most `limit` bytes from the
     /// underlying reader.
-    fn take(self, limit: usize) -> Take<Self>
+    fn limit(self, limit: usize) -> Limit<Self>
     where
         Self: Sized,
     {
-        Take { inner: self, limit }
+        Limit { inner: self, limit }
     }
 
     /// Asynchronously reads a signed 8 bit integer from the underlying reader.
@@ -271,6 +271,15 @@ impl<R: Read + ?Sized> AsyncReadBytesExt for R {}
 /// must be explicitly instantiated. Typically, it is instantiated with either
 /// the [`BigEndian`] or [`LittleEndian`] types defined in this crate.
 pub trait AsyncWriteBytesExt: Write {
+    /// Creates a new [`Limit`] instance that writes at most `limit` bytes to the
+    /// underlying writer.
+    fn limit(self, limit: usize) -> Limit<Self>
+    where
+        Self: Sized,
+    {
+        Limit { inner: self, limit }
+    }
+
     /// Writes an unsigned 8 bit integer to the underlying writer.
     ///
     /// Note that since this writes a single byte, no byte order conversions

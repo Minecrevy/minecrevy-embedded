@@ -16,12 +16,12 @@ mod io_blocking;
 pub use self::io_async::*;
 pub use self::io_blocking::*;
 
-pub struct Take<T> {
+pub struct Limit<T> {
     inner: T,
     limit: usize,
 }
 
-impl<T> Take<T> {
+impl<T> Limit<T> {
     pub fn limit(&self) -> usize {
         self.limit
     }
@@ -43,11 +43,11 @@ impl<T> Take<T> {
     }
 }
 
-impl<T: ErrorType> ErrorType for Take<T> {
+impl<T: ErrorType> ErrorType for Limit<T> {
     type Error = T::Error;
 }
 
-impl<T: Read> Read for Take<T> {
+impl<T: Read> Read for Limit<T> {
     fn read(&mut self, buf: &mut [u8]) -> Result<usize, Self::Error> {
         if self.limit == 0 {
             return Ok(0);
@@ -61,7 +61,7 @@ impl<T: Read> Read for Take<T> {
     }
 }
 
-impl<T: AsyncRead> AsyncRead for Take<T> {
+impl<T: AsyncRead> AsyncRead for Limit<T> {
     async fn read(&mut self, buf: &mut [u8]) -> Result<usize, Self::Error> {
         if self.limit == 0 {
             return Ok(0);
@@ -72,6 +72,42 @@ impl<T: AsyncRead> AsyncRead for Take<T> {
         assert!(n <= self.limit, "number of read bytes exceeds limit");
         self.limit -= n;
         Ok(n)
+    }
+}
+
+impl<T: Write> Write for Limit<T> {
+    fn write(&mut self, buf: &[u8]) -> Result<usize, Self::Error> {
+        if self.limit == 0 {
+            return Ok(0);
+        }
+
+        let max = core::cmp::min(buf.len(), self.limit);
+        let n = self.inner.write(&buf[..max])?;
+        assert!(n <= self.limit, "number of written bytes exceeds limit");
+        self.limit -= n;
+        Ok(n)
+    }
+
+    fn flush(&mut self) -> Result<(), Self::Error> {
+        self.inner.flush()
+    }
+}
+
+impl<T: AsyncWrite> AsyncWrite for Limit<T> {
+    async fn write(&mut self, buf: &[u8]) -> Result<usize, Self::Error> {
+        if self.limit == 0 {
+            return Ok(0);
+        }
+
+        let max = core::cmp::min(buf.len(), self.limit);
+        let n = self.inner.write(&buf[..max]).await?;
+        assert!(n <= self.limit, "number of written bytes exceeds limit");
+        self.limit -= n;
+        Ok(n)
+    }
+
+    async fn flush(&mut self) -> Result<(), Self::Error> {
+        self.inner.flush().await
     }
 }
 
@@ -136,5 +172,9 @@ impl<const N: usize> AsyncWrite for ScratchVec<N> {
             .extend_from_slice(buf)
             .map_err(|_| VecWriteError::Full)?;
         Ok(buf.len())
+    }
+
+    async fn flush(&mut self) -> Result<(), Self::Error> {
+        Ok(())
     }
 }

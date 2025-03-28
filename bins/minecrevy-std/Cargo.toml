@@ -1,0 +1,20 @@
+[package]
+name = "minecrevy-std"
+version = "0.1.0"
+edition = "2024"
+
+[dependencies]
+# workspace
+embassy-time-std = { workspace = true }
+embedded-byteorder = { workspace = true }
+minecrevy-encdec = { workspace = true }
+minecrevy-protocol = { workspace = true }
+# external
+embassy-executor = { workspace = true, features = ["task-arena-size-98304", "arch-std", "executor-thread"] }
+embassy-net = { workspace = true, features = ["tcp", "icmp", "dns", "dhcpv4", "dhcpv4-hostname", "proto-ipv4", "medium-ethernet"] }
+embassy-net-tuntap = { workspace = true }
+embassy-time = { workspace = true }
+heapless = { workspace = true }
+rand = { workspace = true, features = ["std", "thread_rng"] }
+static_cell = { workspace = true }
+thiserror = { workspace = true }

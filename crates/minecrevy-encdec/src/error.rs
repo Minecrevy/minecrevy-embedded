@@ -1,33 +1,5 @@
-#![no_std]
-
-mod io_async;
-mod io_blocking;
-
 use embedded_byteorder::ReadExactError;
-use heapless::Vec;
 use thiserror::Error;
-
-pub use self::io_async::*;
-pub use self::io_blocking::*;
-
-pub const fn var_i32_size(value: i32) -> usize {
-    static VAR_INT_LENGTHS: [usize; 33] = const {
-        let mut lengths = [0; 33];
-        let mut i: usize = 0;
-        while i <= 32 {
-            let sub = match i.checked_sub(1) {
-                Some(x) => x,
-                None => 0,
-            };
-            lengths[i] = (31 - sub).div_ceil(7);
-            i += 1;
-        }
-        lengths[32] = 1; // Special case for the number 0.
-        lengths
-    };
-
-    VAR_INT_LENGTHS[value.leading_zeros() as usize]
-}
 
 #[derive(Error, Clone, PartialEq, Eq, Debug)]
 pub enum ReadMinecraftError<E> {
@@ -52,6 +24,19 @@ impl<E> From<ReadExactError<E>> for ReadMinecraftError<E> {
     }
 }
 
+/// Error type for reading a Minecraft packet.
+///
+/// `FE` stands for "frame error" and `DE` stands for "data error".
+#[derive(Error, Clone, PartialEq, Eq, Debug)]
+pub enum ReadPacketError<FE, DE> {
+    #[error("failed to read packet length: {0}")]
+    Length(ReadMinecraftError<FE>),
+    #[error("failed to read packet id: {0}")]
+    Id(ReadMinecraftError<FE>),
+    #[error("failed to read packet body with id {0}: {1}")]
+    Body(i32, DE),
+}
+
 #[derive(Error, Clone, PartialEq, Eq, Debug)]
 pub enum WriteMinecraftError<E> {
     #[error("out of memory")]
@@ -60,8 +45,15 @@ pub enum WriteMinecraftError<E> {
     Other(#[from] E),
 }
 
-#[derive(Clone, PartialEq, Eq, Debug)]
-pub struct RawPacket<const N: usize> {
-    pub id: i32,
-    pub data: Vec<u8, N>,
+/// Error type for writing a Minecraft packet.
+///
+/// `FE` stands for "frame error" and `DE` stands for "data error".
+#[derive(Error, Clone, PartialEq, Eq, Debug)]
+pub enum WritePacketError<FE, DE> {
+    #[error("failed to write packet length: {0}")]
+    Length(FE),
+    #[error("failed to write packet id: {0}")]
+    Id(FE),
+    #[error("failed to write packet body with id {0}: {1}")]
+    Body(i32, DE),
 }

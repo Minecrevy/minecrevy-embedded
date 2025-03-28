@@ -1,12 +1,15 @@
 #![expect(async_fn_in_trait)]
 
 use embedded_byteorder::{
-    AsyncRead, AsyncReadBytesExt, AsyncWrite, AsyncWriteBytesExt, BigEndian, ScratchVec, Take,
+    AsyncRead, AsyncReadBytesExt, AsyncWrite, AsyncWriteBytesExt, BigEndian, Limit,
 };
 use heapless::{String, Vec};
 use uuid::Uuid;
 
-use crate::{RawPacket, ReadMinecraftError, var_i32_size};
+use crate::{
+    AsyncEncode, RawPacket, ReadMinecraftError, ReadPacketError, WireSize, WritePacketError,
+    var_i32_size,
+};
 
 /// Extends [`AsyncRead`] with methods for reading Minecraft-specific data types.
 pub trait AsyncReadMinecraftExt: AsyncRead {
@@ -57,30 +60,38 @@ pub trait AsyncReadMinecraftExt: AsyncRead {
         Ok(Uuid::from_u64_pair(msb, lsb))
     }
 
-    async fn read_packet<T>(
+    async fn read_packet<T, E>(
         &'_ mut self,
-        decode: impl AsyncFnOnce(i32, Take<&'_ mut Self>) -> T,
-    ) -> Result<T, ReadMinecraftError<Self::Error>> {
-        let len_i32 = self.read_var_i32().await?;
-        let len_usize = usize::try_from(len_i32).map_err(|_| ReadMinecraftError::LengthExceeded)?;
+        decode: impl AsyncFnOnce(i32, Limit<&'_ mut Self>) -> Result<T, E>,
+    ) -> Result<T, ReadPacketError<Self::Error, E>> {
+        let len_i32 = self.read_var_i32().await.map_err(ReadPacketError::Length)?;
+        let len_usize = usize::try_from(len_i32)
+            .map_err(|_| ReadPacketError::Length(ReadMinecraftError::LengthExceeded))?;
 
-        let id = self.read_var_i32().await?;
-        let body = self.take(len_usize - var_i32_size(id));
+        let id = self.read_var_i32().await.map_err(ReadPacketError::Id)?;
+        let body = self.limit(len_usize - var_i32_size(id));
 
-        Ok(decode(id, body).await)
+        decode(id, body)
+            .await
+            .map_err(|e| ReadPacketError::Body(id, e))
     }
 
     async fn read_raw_packet<const MAX: usize>(
         &mut self,
-    ) -> Result<RawPacket<MAX>, ReadMinecraftError<Self::Error>> {
-        let len_i32 = self.read_var_i32().await?;
-        let len_usize = usize::try_from(len_i32).map_err(|_| ReadMinecraftError::LengthExceeded)?;
+    ) -> Result<RawPacket<MAX>, ReadPacketError<Self::Error, ReadMinecraftError<Self::Error>>> {
+        let len_i32 = self.read_var_i32().await.map_err(ReadPacketError::Length)?;
+        let len_usize = usize::try_from(len_i32)
+            .map_err(|_| ReadPacketError::Length(ReadMinecraftError::LengthExceeded))?;
 
-        let id = self.read_var_i32().await?;
+        let id = self.read_var_i32().await.map_err(ReadPacketError::Id)?;
         let mut data = Vec::new();
-        data.resize(len_usize - var_i32_size(id), 0)
-            .map_err(|_| ReadMinecraftError::LengthExceeded)?;
-        self.read_exact(&mut data).await?;
+        let body_size = len_usize - var_i32_size(id);
+        data.resize(body_size, 0)
+            .map_err(|_| ReadPacketError::Body(id, ReadMinecraftError::LengthExceeded))?;
+        self.read_exact(&mut data[..body_size])
+            .await
+            .map_err(ReadMinecraftError::from)
+            .map_err(|e| ReadPacketError::Body(id, e))?;
 
         Ok(RawPacket { id, data })
     }
@@ -130,22 +141,25 @@ pub trait AsyncWriteMinecraftExt: AsyncWrite {
         Ok(())
     }
 
-    async fn write_packet<const N: usize, E>(
+    async fn write_packet<P>(
         &mut self,
         id: i32,
-        scratch: &'_ mut ScratchVec<N>,
-        encode: impl AsyncFnOnce(&'_ mut ScratchVec<N>) -> Result<(), E>,
-    ) -> Result<(), E>
+        packet: P,
+        options: <P as AsyncEncode>::Options,
+    ) -> Result<(), WritePacketError<Self::Error, P::Error<Self::Error>>>
     where
-        E: From<Self::Error>,
+        P: AsyncEncode + WireSize<Options = <P as AsyncEncode>::Options>,
     {
-        scratch.clear();
-        encode(scratch).await?;
-
-        let len_i32 = i32::try_from(var_i32_size(id) + scratch.len()).unwrap();
-        self.write_var_i32(len_i32).await?;
-        self.write_var_i32(id).await?;
-        self.write_all(scratch).await?;
+        let len_usize = var_i32_size(id) + packet.wire_size(options.clone());
+        let len_i32 = i32::try_from(len_usize).unwrap();
+        self.write_var_i32(len_i32)
+            .await
+            .map_err(WritePacketError::Length)?;
+        self.write_var_i32(id).await.map_err(WritePacketError::Id)?;
+        packet
+            .encode(&mut self.limit(len_usize), options)
+            .await
+            .map_err(|e| WritePacketError::Body(id, e))?;
         Ok(())
     }
 

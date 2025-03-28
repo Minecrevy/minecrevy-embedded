@@ -1,30 +1,32 @@
 use embedded_byteorder::{
     AsyncRead, AsyncReadBytesExt, AsyncWrite, AsyncWriteBytesExt, BigEndian, ReadExactError,
 };
-use minecrevy_bytes::{AsyncReadMinecraftExt, AsyncWriteMinecraftExt, ReadMinecraftError};
 
-use crate::{AsyncDecode, AsyncEncode, options::IntOptions};
+use crate::{
+    AsyncDecode, AsyncEncode, AsyncReadMinecraftExt, AsyncWriteMinecraftExt, ReadMinecraftError,
+    options::IntOptions,
+};
 
 macro_rules! impl_primitive {
     ($($ty:ty: $dec:expr, $enc:expr;)*) => {
         $(
             impl AsyncDecode for $ty {
-                type Options<'a> = ();
+                type Options = ();
                 type Error<E> = ReadExactError<E>;
 
                 #[inline]
-                async fn decode<R: AsyncRead>(reader: &mut R, (): Self::Options<'_>) -> Result<Self, Self::Error<R::Error>>
+                async fn decode<R: AsyncRead>(reader: &mut R, (): Self::Options) -> Result<Self, Self::Error<R::Error>>
                 {
                     $dec(reader).await
                 }
             }
 
             impl AsyncEncode for $ty {
-                type Options<'a> = ();
+                type Options = ();
                 type Error<E> = E;
 
                 #[inline]
-                async fn encode<W: AsyncWrite>(&self, writer: &mut W, (): Self::Options<'_>) -> Result<(), Self::Error<W::Error>>
+                async fn encode<W: AsyncWrite>(&self, writer: &mut W, (): Self::Options) -> Result<(), Self::Error<W::Error>>
                 {
                     $enc(writer, *self).await
                 }
@@ -46,13 +48,13 @@ impl_primitive!(
 );
 
 impl AsyncDecode for i32 {
-    type Options<'a> = IntOptions;
+    type Options = IntOptions;
     type Error<E> = ReadMinecraftError<E>;
 
     #[inline]
     async fn decode<R: AsyncRead>(
         reader: &mut R,
-        IntOptions { varint }: Self::Options<'_>,
+        IntOptions { varint }: Self::Options,
     ) -> Result<Self, Self::Error<R::Error>> {
         if varint {
             return reader.read_var_i32().await;
@@ -63,14 +65,14 @@ impl AsyncDecode for i32 {
 }
 
 impl AsyncEncode for i32 {
-    type Options<'a> = IntOptions;
+    type Options = IntOptions;
     type Error<E> = E;
 
     #[inline]
     async fn encode<W: AsyncWrite>(
         &self,
         writer: &mut W,
-        IntOptions { varint }: Self::Options<'_>,
+        IntOptions { varint }: Self::Options,
     ) -> Result<(), Self::Error<W::Error>> {
         if varint {
             writer.write_var_i32(*self).await
