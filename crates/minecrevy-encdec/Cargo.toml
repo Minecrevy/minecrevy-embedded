@@ -8,6 +8,7 @@ edition = "2024"
 embedded-byteorder = { workspace = true }
 minecrevy-encdec-macros = { workspace = true }
 # external
+defmt = { workspace = true }
 heapless = { workspace = true }
 thiserror = { workspace = true }
 uuid = { workspace = true }

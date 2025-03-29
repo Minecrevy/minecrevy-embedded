@@ -1,3 +1,4 @@
+use defmt::Format;
 use embedded_byteorder::{AsyncRead, ReadExactError};
 use heapless::String;
 use minecrevy_encdec::{
@@ -46,7 +47,7 @@ impl AsyncDecode for Handshake {
     }
 }
 
-#[derive(Clone, Copy, PartialEq, Eq, Debug)]
+#[derive(Format, Clone, Copy, PartialEq, Eq, Debug)]
 pub enum NextState {
     Status,
     Login,

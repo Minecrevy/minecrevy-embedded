@@ -1,0 +1,30 @@
+[package]
+name = "minecrevy-pico2w"
+version = "0.1.0"
+edition = "2024"
+
+[dependencies]
+# workspace
+embedded-byteorder = { workspace = true }
+minecrevy-encdec = { workspace = true }
+minecrevy-protocol = { workspace = true }
+# external
+cortex-m = { workspace = true, features = ["inline-asm"] }
+cortex-m-rt = { workspace = true }
+cyw43 = { workspace = true, features = ["defmt", "firmware-logs"] }
+cyw43-pio = { workspace = true, features = ["defmt"] }
+defmt = { workspace = true }
+defmt-rtt = { workspace = true }
+embassy-executor = { workspace = true, features = ["task-arena-size-98304", "arch-cortex-m", "executor-thread", "executor-interrupt", "defmt"] }
+embassy-net = { workspace = true, features = ["defmt", "tcp", "dhcpv4", "dhcpv4-hostname", "dns", "proto-ipv4", "medium-ethernet"] }
+embassy-rp = { workspace = true, features = ["defmt", "unstable-pac", "time-driver", "critical-section-impl", "rp235xa", "binary-info"] }
+embassy-time = { workspace = true, features = ["defmt", "defmt-timestamp-uptime"] }
+embedded-io-async = { workspace = true, features = ["defmt-03"] }
+heapless = { workspace = true }
+panic-halt = { workspace = true }
+panic-probe = { workspace = true, default-features = true }
+static_cell = { workspace = true }
+thiserror = { workspace = true }
+
+[build-dependencies]
+dotenvy = "0.15.7"

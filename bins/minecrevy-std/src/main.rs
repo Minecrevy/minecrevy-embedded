@@ -8,7 +8,8 @@ use minecrevy_encdec::{
     AsyncDecode, AsyncReadMinecraftExt, AsyncWriteMinecraftExt, WritePacketError,
 };
 use minecrevy_protocol::r770::{
-    Handshake, StatusPing, StatusRequest, StatusResponse, StatusResponsePlayers,
+    Handshake, NextState, StatusPing, StatusRequest, StatusResponse, StatusResponsePlayers,
+    StatusResponseSimple,
 };
 use rand::RngCore;
 use static_cell::StaticCell;
@@ -23,8 +24,6 @@ async fn net_task(mut runner: embassy_net::Runner<'static, TunTapDevice>) -> ! {
 
 #[embassy_executor::main]
 async fn main(spawner: Spawner) {
-    println!("Hello, world!");
-
     let device = TunTapDevice::new("tap99").unwrap();
 
     let gateway = [192, 168, 69, 1].into();
@@ -44,8 +43,6 @@ async fn main(spawner: Spawner) {
     );
     spawner.spawn(net_task(runner)).unwrap();
 
-    // check_connectivity(stack, gateway).await;
-
     let mut rx_buffer = [0; 4096];
     let mut tx_buffer = [0; 4096];
 
@@ -61,7 +58,10 @@ async fn main(spawner: Spawner) {
 
         println!("Received connection from {:?}", socket.remote_endpoint());
 
-        let Ok(handshake) = socket
+        let Ok(handshake): Result<
+            Handshake,
+            minecrevy_encdec::ReadPacketError<embassy_net::tcp::Error, _>,
+        > = socket
             .read_packet(async move |id, mut reader| {
                 assert_eq!(id, 0x00);
                 Handshake::decode(&mut reader, ()).await
@@ -82,6 +82,14 @@ async fn main(spawner: Spawner) {
             continue;
         }
 
+        if handshake.next_state != NextState::Status {
+            println!(
+                "Received unsupported next state: {:?}",
+                handshake.next_state
+            );
+            continue;
+        }
+
         handle_status_packets(socket).await;
     }
 }
@@ -93,15 +101,25 @@ const STATUS_RESPONSE: StatusResponse<'static> = StatusResponse {
     enforces_secure_chat: false,
 };
 
+const STATUS_RESPONSE_SIMPLE: StatusResponseSimple<'static> = StatusResponseSimple(
+    r#"{"version":{"name":"1.21.5","protocol":770},"players":{"max":0,"online":0},"description":"Hello, world!","enforcesSecureChat":false}"#,
+);
+
 async fn handle_status_packets(mut socket: TcpSocket<'_>) {
     loop {
         let (mut reader, mut writer) = socket.split();
 
-        reader
+        if let Err(e) = reader
             .read_packet(async move |id, mut reader| {
                 match id {
                     0x00 => {
-                        let Ok(_request) = StatusRequest::decode(&mut reader, ()).await;
+                        let Ok(request) = StatusRequest::decode(&mut reader, ()).await;
+                        println!("Received status request: {request:?}");
+                        writer
+                            .write_packet(0x00, STATUS_RESPONSE_SIMPLE, ())
+                            .await
+                            .map_err(StatusPacketError::Response)?;
+                        println!("Flushing response...");
                         // writer
                         //     .write_packet(0x00, STATUS_RESPONSE, Default::default())
                         //     .await
@@ -113,6 +131,7 @@ async fn handle_status_packets(mut socket: TcpSocket<'_>) {
                         let ping = StatusPing::decode(&mut reader, ())
                             .await
                             .map_err(StatusPacketError::Ping)?;
+                        println!("Received status ping: {ping:?}");
                         writer
                             .write_packet(0x01, ping, ())
                             .await
@@ -124,7 +143,10 @@ async fn handle_status_packets(mut socket: TcpSocket<'_>) {
                 }
             })
             .await
-            .expect("failed to read packet");
+        {
+            println!("Error reading packet: {:?}", e);
+            break;
+        }
     }
 }
 

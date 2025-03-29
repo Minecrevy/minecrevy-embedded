@@ -8,6 +8,7 @@ edition = "2024"
 embedded-byteorder = { workspace = true }
 minecrevy-encdec = { workspace = true }
 # external
+defmt = { workspace = true }
 heapless = { workspace = true }
 serde = { workspace = true, features = ["derive"] }
 serde-json-core = { workspace = true }

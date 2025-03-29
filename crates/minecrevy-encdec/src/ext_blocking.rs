@@ -18,7 +18,7 @@ pub trait ReadMinecraftExt: Read {
             byte = self.read_u8()?;
             value |= ((byte & SEGMENT_MASK) as i32) << position;
 
-            if (byte & CONTINUE_BIT) == 0 {
+            if (byte & CONTINUE_BIT) != CONTINUE_BIT {
                 break;
             }
 

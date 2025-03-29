@@ -20,24 +20,17 @@ pub trait AsyncReadMinecraftExt: AsyncRead {
         const SEGMENT_MASK: u8 = 0x7F;
 
         let mut value = 0;
-        let mut position = 0;
-        let mut byte;
-
-        loop {
-            byte = self.read_u8().await?;
-            value |= ((byte & SEGMENT_MASK) as i32) << position;
-
+        for i in 0..5 {
+            let byte = self
+                .read_u8()
+                .await
+                .map_err(|_| ReadMinecraftError::VarIntIncomplete)?;
+            value |= ((byte & SEGMENT_MASK) as i32) << (i * 7);
             if (byte & CONTINUE_BIT) == 0 {
-                break;
-            }
-
-            position += 7;
-
-            if position >= 32 {
-                return Err(ReadMinecraftError::VarIntTooBig);
+                return Ok(value);
             }
         }
-        Ok(value)
+        Err(ReadMinecraftError::VarIntTooBig)
     }
 
     async fn read_string<const MAX: usize>(

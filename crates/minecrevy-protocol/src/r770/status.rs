@@ -3,9 +3,10 @@ use core::convert::Infallible;
 use embedded_byteorder::{
     AsyncRead, AsyncReadBytesExt, AsyncWrite, AsyncWriteBytesExt, BigEndian, ReadExactError,
 };
-use minecrevy_encdec::{AsyncDecode, AsyncEncode, WireSize};
+use minecrevy_encdec::{AsyncDecode, AsyncEncode, AsyncWriteMinecraftExt, WireSize, var_i32_size};
 use serde::{Serialize, ser::SerializeMap};
 
+#[derive(Clone, Copy, PartialEq, Eq, Debug)]
 pub struct StatusRequest;
 
 impl AsyncDecode for StatusRequest {
@@ -46,6 +47,35 @@ impl AsyncDecode for StatusPing {
         (): Self::Options,
     ) -> Result<Self, Self::Error<R::Error>> {
         Ok(Self(reader.read_i64::<BigEndian>().await?))
+    }
+}
+
+pub struct StatusResponseSimple<'a>(pub &'a str);
+
+impl AsyncEncode for StatusResponseSimple<'_> {
+    type Options = ();
+    type Error<E> = E;
+
+    async fn encode<W: AsyncWrite>(
+        &self,
+        writer: &mut W,
+        (): Self::Options,
+    ) -> Result<(), Self::Error<W::Error>> {
+        let len = i32::try_from(self.0.len()).unwrap();
+        writer.write_var_i32(len).await?;
+        writer.write_all(self.0.as_bytes()).await?;
+        Ok(())
+    }
+}
+
+impl WireSize for StatusResponseSimple<'_> {
+    type Options = ();
+
+    fn wire_size(&self, (): Self::Options) -> usize {
+        let mut size = 0;
+        size += var_i32_size(self.0.len() as i32);
+        size += self.0.len();
+        size
     }
 }
 

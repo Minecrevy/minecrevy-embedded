@@ -1,0 +1,11 @@
+[package]
+name = "minecrevy-net"
+version = "0.1.0"
+edition = "2024"
+
+[dependencies]
+# workspace
+# external
+embassy-executor = { workspace = true }
+embassy-net = { workspace = true, features = ["proto-ipv4", "tcp", "medium-ethernet"] }
+embassy-time = { workspace = true }

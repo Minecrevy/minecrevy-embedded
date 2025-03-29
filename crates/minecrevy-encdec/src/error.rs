@@ -1,7 +1,8 @@
+use defmt::Format;
 use embedded_byteorder::ReadExactError;
 use thiserror::Error;
 
-#[derive(Error, Clone, PartialEq, Eq, Debug)]
+#[derive(Format, Error, Clone, PartialEq, Eq, Debug)]
 pub enum ReadMinecraftError<E> {
     #[error("invalid UTF-8")]
     InvalidUtf8,
@@ -9,6 +10,8 @@ pub enum ReadMinecraftError<E> {
     LengthExceeded,
     #[error("varint too big")]
     VarIntTooBig,
+    #[error("varint incomplete")]
+    VarIntIncomplete,
     #[error("unexpected EOF")]
     UnexpectedEof,
     #[error("other error: {0}")]
@@ -27,7 +30,7 @@ impl<E> From<ReadExactError<E>> for ReadMinecraftError<E> {
 /// Error type for reading a Minecraft packet.
 ///
 /// `FE` stands for "frame error" and `DE` stands for "data error".
-#[derive(Error, Clone, PartialEq, Eq, Debug)]
+#[derive(Format, Error, Clone, PartialEq, Eq, Debug)]
 pub enum ReadPacketError<FE, DE> {
     #[error("failed to read packet length: {0}")]
     Length(ReadMinecraftError<FE>),
@@ -37,7 +40,7 @@ pub enum ReadPacketError<FE, DE> {
     Body(i32, DE),
 }
 
-#[derive(Error, Clone, PartialEq, Eq, Debug)]
+#[derive(Format, Error, Clone, PartialEq, Eq, Debug)]
 pub enum WriteMinecraftError<E> {
     #[error("out of memory")]
     OutOfMemory,
@@ -48,7 +51,7 @@ pub enum WriteMinecraftError<E> {
 /// Error type for writing a Minecraft packet.
 ///
 /// `FE` stands for "frame error" and `DE` stands for "data error".
-#[derive(Error, Clone, PartialEq, Eq, Debug)]
+#[derive(Format, Error, Clone, PartialEq, Eq, Debug)]
 pub enum WritePacketError<FE, DE> {
     #[error("failed to write packet length: {0}")]
     Length(FE),
