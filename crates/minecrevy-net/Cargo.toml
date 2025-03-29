@@ -3,9 +3,20 @@ name = "minecrevy-net"
 version = "0.1.0"
 edition = "2024"
 
+[features]
+defmt = ["dep:defmt", "minecrevy-log/defmt"]
+log = ["dep:log", "minecrevy-log/log"]
+
 [dependencies]
 # workspace
+embedded-byteorder = { workspace = true }
+minecrevy-encdec = { workspace = true }
+minecrevy-log = { workspace = true }
+minecrevy-protocol = { workspace = true }
 # external
+defmt = { workspace = true, optional = true }
 embassy-executor = { workspace = true }
 embassy-net = { workspace = true, features = ["proto-ipv4", "tcp", "medium-ethernet"] }
 embassy-time = { workspace = true }
+log = { workspace = true, optional = true }
+thiserror = { workspace = true }

@@ -1,0 +1,10 @@
+[package]
+name = "minecrevy-log"
+version = "0.1.0"
+edition = "2024"
+
+[features]
+
+[dependencies]
+defmt = { workspace = true, optional = true }
+log = { workspace = true, optional = true }

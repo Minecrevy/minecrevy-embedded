@@ -5,16 +5,16 @@ edition = "2024"
 
 [dependencies]
 # workspace
-embassy-time-std = { workspace = true }
-embedded-byteorder = { workspace = true }
-minecrevy-encdec = { workspace = true }
-minecrevy-protocol = { workspace = true }
+embassy-time-std = { path = "../../crates/embassy-time-std", default-features = false }
+embedded-byteorder = { path = "../../crates/embedded-byteorder", default-features = false }
+minecrevy-encdec = { path = "../../crates/minecrevy-encdec", default-features = false }
+minecrevy-protocol = { path = "../../crates/minecrevy-protocol", default-features = false }
 # external
-embassy-executor = { workspace = true, features = ["task-arena-size-98304", "arch-std", "executor-thread"] }
-embassy-net = { workspace = true, features = ["tcp", "icmp", "dns", "dhcpv4", "dhcpv4-hostname", "proto-ipv4", "medium-ethernet"] }
-embassy-net-tuntap = { workspace = true }
-embassy-time = { workspace = true }
-heapless = { workspace = true }
-rand = { workspace = true, features = ["std", "thread_rng"] }
-static_cell = { workspace = true }
-thiserror = { workspace = true }
+embassy-executor = { git = "https://github.com/embassy-rs/embassy", rev = "f15a11f", default-features = false, features = ["task-arena-size-98304", "arch-std", "executor-thread"] }
+embassy-net = { git = "https://github.com/embassy-rs/embassy", rev = "f15a11f", default-features = false, features = ["tcp", "icmp", "dns", "dhcpv4", "dhcpv4-hostname", "proto-ipv4", "medium-ethernet"] }
+embassy-net-tuntap = { git = "https://github.com/embassy-rs/embassy", rev = "f15a11f", default-features = false }
+embassy-time = { git = "https://github.com/embassy-rs/embassy", rev = "f15a11f", default-features = false }
+heapless = { version = "0.8.0", default-features = false }
+rand = { version = "0.9", default-features = false, features = ["std", "thread_rng"] }
+static_cell = { version = "2.1", default-features = false }
+thiserror = { version = "2.0.12", default-features = false }
